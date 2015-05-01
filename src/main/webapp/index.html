@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Chat</title>
+    <link rel="stylesheet" href="resources/css/style.css" type="text/css">
+    <script src="resources/javascrypt/dynamics.js"></script>
+    <link rel="stylesheet" href="resources/css/bootstrap.min.css">
+</head>
+<body onload="run();">
+<div class="container">
+    <div class="shellLogin center">
+        <img src="resources/css/images/user.png" class="img-circle">
+        <div class="leadtext center">Enter Login:<p id="nameLogin" class="fat"></p></div>
+        <div class="form-inline">
+            <input id="inputLogin" type="text" class="input input-xlarge" onkeydown="isEnter();"
+                   maxlength="20">
+            <input type="button" class="mybtn btn-info" value="Enter">
+        </div>
+    </div>
+    <div class="shellChat">
+        <div class="chat" id="shellChat">
+            <div class="items"></div>
+        </div>
+        <div class="panelMessage">
+            <div class="form-inline">
+                <textarea id="inputMessage" type="text" class="input textArea"
+                          onkeydown="isShiftEnter();"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="btn-my positionsent"><div class ="btn-sent"></div></div>
+    <div class="serverPosition">
+        <h4>Server:<img src="resources/css/images/greenButton.png"></h4>
+    </div>
+</div>
+</body>
+</html>
