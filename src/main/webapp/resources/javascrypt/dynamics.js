@@ -64,10 +64,10 @@ function delegateEvent(event) {
        /* if (event.type == 'click' && event.target.classList.contains('iconChange')) {
             changeClick(event.target.parentNode);
         }
+        */
         if (event.type == 'click' && event.target.classList.contains('iconDelete')) {
             deleteClick(event.target.parentNode);
         }
-        */
     }
 }
 function createAllTask(allTask, fromIndex) {

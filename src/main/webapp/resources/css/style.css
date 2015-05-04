@@ -6,6 +6,7 @@ body {
     background-size: cover;
     overflow: scroll;
 }
+
 .chat {
     height: 500px;
     width: 673px;
@@ -116,4 +117,12 @@ body {
     padding-right: 50px;
     height: 50px;
     background: url(images/change.png) no-repeat center;
+}
+.error {
+    height: 80px;
+    weight: 800px;
+    background : #0480be;
+    text-align: center;
+    top: 10px;
+    color:#dd1144;
 }

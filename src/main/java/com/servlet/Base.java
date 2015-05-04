@@ -2,8 +2,10 @@ package com.servlet;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.org.apache.xpath.internal.res.XPATHErrorResources;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -13,6 +15,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,10 +29,10 @@ import java.util.TreeMap;
  * Created by Xaker on 28.04.2015.
  */
 public class Base {
-    public Map<Integer, Message> history = new TreeMap<Integer, Message>();
+   // public Map<Integer, Message> history = new TreeMap<Integer, Message>();
     private static final String PATH_HOME = System.getProperty("user.home") + "\\history.xml";
     private static SimpleDateFormat timeForm = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-    public ArrayList<Message> giveArrayMessages() {
+   /* public ArrayList<Message> giveArrayMessages() {
         ArrayList<Message> messages = new ArrayList<Message>();
         for (int i = 0; i < history.size(); i++) {
             Message mes = history.get(i);
@@ -39,7 +42,7 @@ public class Base {
         }
         return messages;
     }
-
+*/
   /*  private void sendResponse(HttpExchange httpExchange, String response) {
         try {
             byte[] bytes = response.getBytes();
@@ -96,6 +99,9 @@ public class Base {
         Element text = doc.createElement("text");
         text.appendChild(doc.createTextNode(temp.getMessage()));
         message.appendChild(text);
+        Element id = doc.createElement("id");
+        id.appendChild(doc.createTextNode(Long.toString(temp.getID())));
+        message.appendChild(id);
         Element date = doc.createElement("date");
         Date textTime = temp.getDate();
         date.appendChild(doc.createTextNode(timeForm.format(textTime)));
@@ -105,8 +111,8 @@ public class Base {
         t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
     }
 
-    public synchronized Map<Integer, Message> readXML() throws SAXException, IOException, ParserConfigurationException {
-        Map<Integer, Message> messages = new TreeMap<Integer, Message>();
+    public synchronized List<Message> readXML() throws SAXException, IOException, ParserConfigurationException {
+        List<Message> messages = new ArrayList<Message>();
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document doc = db.parse(PATH_HOME);
@@ -117,14 +123,74 @@ public class Base {
             Element message = (Element) ndlist.item(i);
             String author = message.getElementsByTagName("author").item(0).getTextContent();
             String text = message.getElementsByTagName("text").item(0).getTextContent();
+            String id = message.getElementsByTagName("id").item(0).getTextContent();
             Date date = timeForm.parse(message.getElementsByTagName("date").item(0).getTextContent(), new ParsePosition(0));
-            messages.put(i,new Message(i, author, text, date));
+            messages.add(new Message(Long.parseLong(id), author, text, date));
         }
-        history.putAll(messages);
+       // history.putAll(messages);
         return messages;
     }
+
+    public synchronized void deletePartXML(Message deleteTemp ) throws ParserConfigurationException, IOException, SAXException, TransformerException {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document doc = db.parse(PATH_HOME);
+        doc.getDocumentElement().normalize();
+        Element root = doc.getDocumentElement();
+
+        NodeList ndlist = root.getElementsByTagName("message");
+        int i;
+        String findId = Long.toString(deleteTemp.getID());
+        for (i = 0; i < ndlist.getLength(); i++) {
+            Element message = (Element) ndlist.item(i);
+            String realId = message.getElementsByTagName("id").item(0).getTextContent();
+            if (findId.equals(realId)) {
+               // message.
+                //message.replaceChild("", ((Element) ndlist.item(i)).getElementsByTagName("messege").item(0).getTextContent())
+                //ndlist.item(i).replaceChild((Node)deleteTemp,message);
+                ndlist.item(i).getParentNode().removeChild(ndlist.item(i));
+                Transformer t = TransformerFactory.newInstance().newTransformer();
+                t.setOutputProperty(OutputKeys.INDENT, "yes");
+                t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
+                break;
+            }
+        }
+    }
+
     public static synchronized boolean thereXML() {
         File file = new File(PATH_HOME);
         return file.exists();
+    }
+    public synchronized int sizeXML() throws IOException, SAXException, ParserConfigurationException {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document doc = db.parse(PATH_HOME);
+        doc.getDocumentElement().normalize();
+        Element root = doc.getDocumentElement();
+
+        NodeList ndlist = root.getElementsByTagName("message");
+        return ndlist.getLength();
+    }
+    public synchronized Message findInXML(long id) throws XPathExpressionException, IOException, SAXException, ParserConfigurationException {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document doc = db.parse(PATH_HOME);
+        doc.getDocumentElement().normalize();
+        Element root = doc.getDocumentElement();
+        String findId = Long.toString(id);
+        NodeList ndlist = root.getElementsByTagName("message");
+        int i;
+        for (i = 0; i < ndlist.getLength(); i++) {
+            Element message = (Element) ndlist.item(i);
+            String realId = message.getElementsByTagName("id").item(0).getTextContent();
+            if (findId.equals(realId)) {
+                break;
+            }
+        }
+        Element el = (Element)ndlist.item(i);
+        String author = el.getElementsByTagName("author").item(0).getTextContent();
+        String text = el.getElementsByTagName("text").item(0).getTextContent();
+        Date date = timeForm.parse(el.getElementsByTagName("date").item(0).getTextContent(), new ParsePosition(0));
+        return new Message(id, author, text, date);
     }
 }
