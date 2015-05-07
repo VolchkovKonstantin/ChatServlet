@@ -42,7 +42,7 @@ function run() {
     //restore();
     setInterval(function () {
         restore();
-    }, 5000);
+    }, 1000);
 
 }
 function delegateEvent(event) {
@@ -77,8 +77,9 @@ function createAllTask(allTask, fromIndex) {
         if (addFromIndex(allTask[i], index))
             index++;
     }
-    var block = document.getElementsByClassName("chat");
-    block[0].scrollTop = block[0].scrollHeight;
+    var items = document.getElementsByClassName('items')[0];
+    if (items.childNodes.item(size)!=null)
+    items.removeChild(items.childNodes.item(size));
 }
 
 function addFromIndex(task, fromIndex) {

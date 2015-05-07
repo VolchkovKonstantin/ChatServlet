@@ -59,9 +59,11 @@ public class Message {
         Message structMessage = new Message(id, user, message, date);
         return structMessage;
     }
+
     public String toString() {
         return "{\"id\":\"" + this.id + "\",\"user\":\"" + this.user + "\",\"message\":" + this.message + "}";
     }
+
     public Date getDate() {
         return this.date;
     }

@@ -5,6 +5,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.w3c.dom.*;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -27,10 +28,10 @@ public class MessageExchange {
         return "TN" + number + "EN";
     }
 
-/*    public int getIndex(String token) {
-        return (Integer.valueOf(token.substring(2, token.length() - 2)) - 11) / 8;
-    }
-*/
+    /*    public int getIndex(String token) {
+            return (Integer.valueOf(token.substring(2, token.length() - 2)) - 11) / 8;
+        }
+    */
     public String getServerResponse(List<Message> messages, int numberToken) {
         JSONObject jsonObject = new JSONObject();
         JSONArray jsonArray = new JSONArray();
@@ -46,14 +47,14 @@ public class MessageExchange {
         return jsonObject.toJSONString();
     }
 
-   /* public String getClientSendMessageRequest(long id, String username, String message) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", id);
-        jsonObject.put("user", username);
-        jsonObject.put("message", message);
-        return jsonObject.toJSONString();
-    }
-*/
+    /* public String getClientSendMessageRequest(long id, String username, String message) {
+         JSONObject jsonObject = new JSONObject();
+         jsonObject.put("id", id);
+         jsonObject.put("user", username);
+         jsonObject.put("message", message);
+         return jsonObject.toJSONString();
+     }
+ */
     /*
     public String getErrorMessage(String text) {
         JSONObject jsonObject = new JSONObject();

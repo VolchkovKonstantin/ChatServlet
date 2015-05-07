@@ -29,20 +29,21 @@ import java.util.TreeMap;
  * Created by Xaker on 28.04.2015.
  */
 public class Base {
-   // public Map<Integer, Message> history = new TreeMap<Integer, Message>();
+    // public Map<Integer, Message> history = new TreeMap<Integer, Message>();
     private static final String PATH_HOME = System.getProperty("user.home") + "\\history.xml";
     private static SimpleDateFormat timeForm = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-   /* public ArrayList<Message> giveArrayMessages() {
-        ArrayList<Message> messages = new ArrayList<Message>();
-        for (int i = 0; i < history.size(); i++) {
-            Message mes = history.get(i);
-            if (mes != null) {
-                messages.add(mes);
-            }
-        }
-        return messages;
-    }
-*/
+
+    /* public ArrayList<Message> giveArrayMessages() {
+         ArrayList<Message> messages = new ArrayList<Message>();
+         for (int i = 0; i < history.size(); i++) {
+             Message mes = history.get(i);
+             if (mes != null) {
+                 messages.add(mes);
+             }
+         }
+         return messages;
+     }
+ */
   /*  private void sendResponse(HttpExchange httpExchange, String response) {
         try {
             byte[] bytes = response.getBytes();
@@ -85,6 +86,7 @@ public class Base {
         t.setOutputProperty(OutputKeys.INDENT, "yes");
         t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
     }
+
     public static synchronized void createPartXML(Message temp) throws TransformerException, ParserConfigurationException, IOException, SAXException {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
@@ -92,6 +94,7 @@ public class Base {
         doc.getDocumentElement().normalize();
         Element root = doc.getDocumentElement();
         Element message = doc.createElement("message");
+        message.setAttribute("id", Long.toString(temp.getID()));
         root.appendChild(message);
         Element author = doc.createElement("author");
         author.appendChild(doc.createTextNode(temp.getUser()));
@@ -111,7 +114,7 @@ public class Base {
         t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
     }
 
-    public synchronized List<Message> readXML() throws SAXException, IOException, ParserConfigurationException {
+    public static synchronized List<Message> readXML() throws SAXException, IOException, ParserConfigurationException {
         List<Message> messages = new ArrayList<Message>();
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
@@ -127,41 +130,42 @@ public class Base {
             Date date = timeForm.parse(message.getElementsByTagName("date").item(0).getTextContent(), new ParsePosition(0));
             messages.add(new Message(Long.parseLong(id), author, text, date));
         }
-       // history.putAll(messages);
+        // history.putAll(messages);
         return messages;
     }
 
-    public synchronized void deletePartXML(Message deleteTemp ) throws ParserConfigurationException, IOException, SAXException, TransformerException {
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        DocumentBuilder db = dbf.newDocumentBuilder();
-        Document doc = db.parse(PATH_HOME);
-        doc.getDocumentElement().normalize();
-        Element root = doc.getDocumentElement();
+    /*  public static synchronized void deletePartXML(Message deleteTemp ) throws ParserConfigurationException, IOException, SAXException, TransformerException, XPathExpressionException {
+          DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+          DocumentBuilder db = dbf.newDocumentBuilder();
+          Document doc = db.parse(PATH_HOME);
+          doc.getDocumentElement().normalize();
+          XPath xpath = XPathFactory.newInstance().newXPath();
+          XPathExpression expr = xpath.compile("//" +"message"+ "[@id='" + Long.toString(id) + "']");
+          Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+  /*        Element root = doc.getDocumentElement();
 
-        NodeList ndlist = root.getElementsByTagName("message");
-        int i;
-        String findId = Long.toString(deleteTemp.getID());
-        for (i = 0; i < ndlist.getLength(); i++) {
-            Element message = (Element) ndlist.item(i);
-            String realId = message.getElementsByTagName("id").item(0).getTextContent();
-            if (findId.equals(realId)) {
-               // message.
-                //message.replaceChild("", ((Element) ndlist.item(i)).getElementsByTagName("messege").item(0).getTextContent())
-                //ndlist.item(i).replaceChild((Node)deleteTemp,message);
-                ndlist.item(i).getParentNode().removeChild(ndlist.item(i));
-                Transformer t = TransformerFactory.newInstance().newTransformer();
-                t.setOutputProperty(OutputKeys.INDENT, "yes");
-                t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
-                break;
-            }
-        }
-    }
-
+          NodeList ndlist = root.getElementsByTagName("message");
+          String findId = Long.toString(deleteTemp.getID());
+          for (i = 0; i < ndlist.getLength(); i++) {
+              Element message = (Element) ndlist.item(i);
+              String realId = message.getElementsByTagName("id").item(0).getTextContent();
+              if (findId.equals(realId)) {
+                 // message.
+                  //message.replaceChild("", ((Element) ndlist.item(i)).getElementsByTagName("messege").item(0).getTextContent())
+                  //ndlist.item(i).replaceChild((Node)deleteTemp,message);
+                  /
+                  nd.getParentNode().removeChild(nd);
+                  Transformer t = TransformerFactory.newInstance().newTransformer();
+                  t.setOutputProperty(OutputKeys.INDENT, "yes");
+                  t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
+      }
+  */
     public static synchronized boolean thereXML() {
         File file = new File(PATH_HOME);
         return file.exists();
     }
-    public synchronized int sizeXML() throws IOException, SAXException, ParserConfigurationException {
+
+    public static synchronized int sizeXML() throws IOException, SAXException, ParserConfigurationException {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document doc = db.parse(PATH_HOME);
@@ -171,14 +175,21 @@ public class Base {
         NodeList ndlist = root.getElementsByTagName("message");
         return ndlist.getLength();
     }
-    public synchronized Message findInXML(long id) throws XPathExpressionException, IOException, SAXException, ParserConfigurationException {
+
+    public static synchronized Message deletePartXML(long id) throws XPathExpressionException, IOException, SAXException, ParserConfigurationException, TransformerException {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document doc = db.parse(PATH_HOME);
         doc.getDocumentElement().normalize();
-        Element root = doc.getDocumentElement();
-        String findId = Long.toString(id);
-        NodeList ndlist = root.getElementsByTagName("message");
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        XPathExpression expr = xpath.compile("//" + "message" + "[@id='" + Long.toString(id) + "']");
+        Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+        Element el = (Element) nd;
+        String author = el.getElementsByTagName("author").item(0).getTextContent();
+        String text = el.getElementsByTagName("text").item(0).getTextContent();
+        //Element root = doc.getDocumentElement();
+        //String findId = Long.toString(id);
+        /*NodeList ndlist = root.getElementsByTagName("message");
         int i;
         for (i = 0; i < ndlist.getLength(); i++) {
             Element message = (Element) ndlist.item(i);
@@ -189,8 +200,12 @@ public class Base {
         }
         Element el = (Element)ndlist.item(i);
         String author = el.getElementsByTagName("author").item(0).getTextContent();
-        String text = el.getElementsByTagName("text").item(0).getTextContent();
+        String text = el.getElementsByTagName("text").item(0).getTextContent();*/
         Date date = timeForm.parse(el.getElementsByTagName("date").item(0).getTextContent(), new ParsePosition(0));
+        nd.getParentNode().removeChild(nd);
+        Transformer t = TransformerFactory.newInstance().newTransformer();
+        t.setOutputProperty(OutputKeys.INDENT, "yes");
+        t.transform(new DOMSource(doc), new StreamResult(PATH_HOME));
         return new Message(id, author, text, date);
     }
 }
