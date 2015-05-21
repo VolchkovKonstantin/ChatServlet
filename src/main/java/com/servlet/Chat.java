@@ -1,5 +1,6 @@
 package com.servlet;
 
+import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.xml.sax.SAXException;
 
@@ -10,20 +11,19 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-import javax.xml.xpath.XPathExpressionException;
-import java.io.*;
-import java.lang.Override;
-import java.lang.String;
-import java.nio.Buffer;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.Date;
-import java.util.Map;
+import java.util.List;
+
 
 @WebServlet(urlPatterns = "/Chat")
 public class Chat extends HttpServlet {
     private MessageExchange messageExchange;
     private Base base;
+    final static Logger logger = Logger.getLogger(Chat.class);
 
     @Override
     public void init() throws ServletException {
@@ -33,13 +33,13 @@ public class Chat extends HttpServlet {
             getfistHistory();
             super.init();
         } catch (SAXException e) {
-            e.printStackTrace();
+            logger.error(e);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e);
         } catch (ParserConfigurationException e) {
-            e.printStackTrace();
+            logger.error(e);
         } catch (TransformerException e) {
-            e.printStackTrace();
+            logger.error(e);
         }
     }
 
@@ -48,23 +48,27 @@ public class Chat extends HttpServlet {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
+
         String token = (String) req.getParameter("token");
         try {
             if (token != null && !"".equals(token)) {
-
-                //int index = messageExchange.getIndex(token);
-                out.print(messageExchange.getServerResponse(base.readXML()/*giveArrayMessages()*/, base.sizeXML())); //base.history.size()));//username,history.subList(index, history.size()));
-                out.flush();
-                resp.setStatus(HttpServletResponse.SC_OK);
+                int index = messageExchange.getIndex(token);
+                if (formResponse(index).equals("NO")) {
+                    resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+                } else {
+                    out.print(formResponse(index));
+                    out.flush();
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                }
             } else {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-                System.out.println("Need correct token");
+                logger.error("Need correct token");
             }
         } catch (Exception e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            logger.error("Something wrong");
         }
     }
-    // else resp.sendError(HttpServletResponse.SC_BAD_REQUEST,"Need token");
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -79,13 +83,15 @@ public class Chat extends HttpServlet {
             Date curTime = new Date();
             DateFormat dtfrm = DateFormat.getDateTimeInstance();
             String dateTime = dtfrm.format(curTime);
-            System.out.println("POST " + dateTime + " " + user + " : " + message);
+
+            logger.info("POST " + dateTime + " " + user + " : " + message);
+
             Message structOfMessage = new Message(id, user, message, curTime);
-            //base.history.put(base.history.size(), structOfMessage);
+            Storage.addMessage("POST", structOfMessage);
             base.createPartXML(structOfMessage);
             resp.setStatus(HttpServletResponse.SC_OK);
         } catch (Exception e) {
-            System.out.print(e);
+            logger.error(e);
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
     }
@@ -98,53 +104,69 @@ public class Chat extends HttpServlet {
             String temp = in.readLine();
             JSONObject jsonObject = messageExchange.getClientMessage(temp);
             long id = Long.parseLong(jsonObject.get("id").toString());
-            // int i;
-            /*for(i = 0; i < base.history.size(); i++ ) {
-                if(id == base.history.get(i).getID()) {
-                    break;
-                }
-            }
-            */
-            Message message = base.deletePartXML(id); //base.history.get(i);
+
+            Message message = base.replacePartXML(id, "DeleteMessage"); //base.history.get(i);
+
             if ((message != null) && (message.getFlag())) {
+                Storage.addMessage("DELETE", message);
+                Date curTime = new Date();
                 DateFormat dtfrm = DateFormat.getDateTimeInstance();
-                String dateTime = dtfrm.format(message.getDate());
-                System.out.println("Delete " + dateTime + " " +/*base.history.get(i)*/message.getUser() + " " + message.getMessage());
+                String dateTime = dtfrm.format(curTime);
+                logger.info("Delete " + dateTime + " " + message.getUser() + " : " + message.getMessage());
                 resp.setStatus(HttpServletResponse.SC_OK);
             } else {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-                System.out.println("Need correct message(Not null)");
+                logger.error("Need correct message(Not null)");
+            }
+        } catch (Exception e) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            logger.error(e);
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            resp.setCharacterEncoding("UTF-8");
+            BufferedReader in = req.getReader();
+            String temp = in.readLine();
+            JSONObject jsonObject = messageExchange.getClientMessage(temp);
+            long id = Long.parseLong(jsonObject.get("id").toString());
+            String putMessage = jsonObject.get("message").toString();
+
+            Message message = base.replacePartXML(id, putMessage);
+
+            if ((message != null) && (message.getFlag())) {
+                Storage.addMessage("PUT", message);
+                Date curTime = new Date();
+                DateFormat dtfrm = DateFormat.getDateTimeInstance();
+                String dateTime = dtfrm.format(curTime);
+                if (!message.getMessage().equals("User Change message")) {
+                    logger.info("PUT " + dateTime + " " + message.getUser() + " : " + message.getMessage());
+                }
+                resp.setStatus(HttpServletResponse.SC_OK);
+            } else {
+                resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                logger.error("Need correct message(Not null)");
             }
         } catch (Exception e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
-    /* @Override
-     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-         BufferedReader in = req.getReader();
-         String temp = in.readLine();
-         try {
-             JSONObject jsonObject = messageExchange.getClientMessage(temp);
-             long id = Long.parseLong(jsonObject.get("id").toString());
-             Message message = base.findInXML(id);
-             if ((message != null) && (message.getFlag())) {
-                 Date curTime = new Date();
-                 DateFormat dtfrm = DateFormat.getDateTimeInstance();
-                 String dateTime = dtfrm.format(curTime);
-                 System.out.println("PUT "+ dateTime + " " +/*base.history.get(i)**message.getUser() + " " + message.getMessage());
-                 message.setMessage("");
-                 base.deletePartXML(message);
-                 message.setFlag(false);
-             }
-         } catch (Exception e) {
-             resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-         }
-     }
- */
+    @SuppressWarnings("unchecked")
+    private String formResponse(int index) {
+        List<Pairs> history = Storage.getHistory(index);
+        if (history.size() != 0) {
+            return messageExchange.getServerResponse(history, Storage.getSize());
+        }
+        return "NO";
+    }
+
     private void getfistHistory() throws SAXException, IOException, ParserConfigurationException, TransformerException {
         if (base.thereXML()) {
-            base.readXML();
+            Storage.addAll(base.readXML(0));
+
         } else {
             base.startXML();
         }

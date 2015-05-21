@@ -4,11 +4,11 @@ var uniqueId = function () {
     var random = Math.random() * Math.random();
     return Math.floor(date * random).toString();
 };
-var theTask = function (user, message) {
+var theTask = function (user, message, id) {
     return {
         user: user,
         message: message,
-        id: uniqueId()
+        id: id
     };
 };
 var appState = {
@@ -61,88 +61,38 @@ function delegateEvent(event) {
         if (event.type == 'click' && event.target.classList.contains('btn-info')) {
             pickLogin();
         }
-       /* if (event.type == 'click' && event.target.classList.contains('iconChange')) {
+        if (event.type == 'click' && event.target.classList.contains('iconChange')) {
             changeClick(event.target.parentNode);
         }
-        */
         if (event.type == 'click' && event.target.classList.contains('iconDelete')) {
             deleteClick(event.target.parentNode);
         }
     }
 }
-function createAllTask(allTask, fromIndex) {
-    var index = fromIndex;
+function createAllTask(allTask) {
     var size = allTask.length;
     for (var i = 0; i < size; i++) {
-        if (addFromIndex(allTask[i], index))
-            index++;
+        if (allTask[i].request == "POST") {
+            var newTask = theTask(allTask[i].user, allTask[i].message, allTask[i].id);
+            addTodoInternal(newTask);
+        }
+        if (allTask[i].request == "DELETE") {
+            var message = document.getElementById(allTask[i].id.toString());
+            var items = document.getElementsByClassName('items') [0];//deleteItem(message,allTask[i]);
+            for (var j = 0; j < items.childNodes.length; j++) {
+                if (items.childNodes[j].id === allTask[i].id.toString()) {
+                    break;
+                }
+            }
+            message.parentNode.removeChild(message);
+            appState.taskList.splice(j, 1);
+        }
+        if (allTask[i].request == "PUT") {
+            var message = document.getElementById(allTask[i].id.toString());
+            changeItem(message, allTask[i]);
+        }
     }
-    var items = document.getElementsByClassName('items')[0];
-    if (items.childNodes.item(size)!=null)
-    items.removeChild(items.childNodes.item(size));
 }
-
-function addFromIndex(task, fromIndex) {
-    var items = document.getElementsByClassName('items')[0];
-    var bool = true;
-    if (items.childElementCount <= fromIndex) {
-        if (task.message == "") {
-            // appState.taskList[fromIndex] = task;
-            return;
-        }
-        else {
-            var item = createItem(task);
-            items.appendChild(item);
-            appState.taskList[fromIndex] = task;
-        }
-    }
-    else {
-        if (task.message == "") {
-            items.removeChild(items.childNodes[fromIndex]);
-            appState.taskList.splice(fromIndex, 1);
-            bool = false;
-            return;
-        }
-        else {
-            var item = createItem(task);
-            items.replaceChild(item, items.childNodes[fromIndex]);
-            appState.taskList[fromIndex] = task;
-        }
-    }
-    return bool;
-}
-/*function storeChat(listToSave) {
- if (typeof(Storage) == "undefined") {
- alert('localStorage is not accessible');
- return;
- }
- localStorage.setItem("Chat", JSON.stringify(listToSave));
- }
- function storeLogin(saveLogin) {
- if (typeof(Storage) == "undefined") {
- alert('localStorage is not accessible');
- return;
- }
- localStorage.setItem("Login", JSON.stringify(savelogin));
- }
- function restoreChat() {
- if (typeof(Storage) == "undefined") {
- alert('localStorage is not accessible');
- return;
- }
- var item = localStorage.getItem("Chat");
- return item && JSON.parse(item);
- }
-
- function restoreLogin() {
- if (typeof(Storage) == "undefined") {
- alert('localStorage is not accessible');
- return;
- }
- var item = localStorage.getItem("Login");
- return item && JSON.parse(item);
- }
- */
 function pickLogin() {
     var login = document.getElementById('inputLogin');
     document.getElementById('nameLogin').innerHTML = login.value;
@@ -150,29 +100,15 @@ function pickLogin() {
     //storeLogin(login.value);
     login.value = '';
     var items = document.getElementsByClassName('items') [0];
-    for (var i = 0; i < items.childElementCount; i++) {
-        if (document.getElementById('nameLogin').innerHTML !== items.childNodes[i].childNodes[0].textContent && items.childNodes[i].childElementCount == 4) {
-            items.childNodes[i].removeChild(items.childNodes[i].childNodes[3]);
-            items.childNodes[i].removeChild(items.childNodes[i].childNodes[2]);
-            items.childNodes[i].classList.remove('border2');
-            items.childNodes[i].classList.add('border1');
-            items.childNodes[i].childNodes[0].classList.remove('fat');
-        }
-        else if (document.getElementById('nameLogin').innerHTML == items.childNodes[i].childNodes[0].textContent && items.childNodes[i].childElementCount != 4) {
-            items.childNodes[i].childNodes[0].classList.add('fat');
-            items.childNodes[i].classList.remove('border1');
-            items.childNodes[i].classList.add('border2');
-            var deletes = '<img class="iconDelete">';
-            items.childNodes[i].innerHTML += deletes;
-            deletes = '<img class="iconChange">';
-            items.childNodes[i].innerHTML += deletes;
-        }
+    for (var i = 0; i < items.childNodes.length; i++) {
+        updateItem(items.childNodes[i]);
     }
+    var block = document.getElementsByClassName("chat");
+    block[0].scrollTop = block[0].scrollHeight;
 }
 function buttonClick() {
     var message = document.getElementById('inputMessage').value;
     var user = document.getElementById('nameLogin').innerHTML;
-    //   taskList = restoreChat();
     if (user.localeCompare("") == 0) {
         alert("input Login!!!")
         return;
@@ -180,27 +116,25 @@ function buttonClick() {
 
     if (!message)
         return;
-    var newTask = theTask(user, message);
     if (numberChangeString == -1) {
-        addTodoInternal(newTask);
-        appState.taskList.push(newTask);
+        var newTask = theTask(user, message, uniqueId());
+        //addTodoInternal(newTask);
         addTodo(newTask, function () {
-            //    output(appState);
         });
     }
     else {
-        addTodoInternal(newTask);
-        changeRequest(appState.taskList[numberChangeString], function () {
+        //addTodoInternal(newTask);
+        var block = appState.taskList[numberChangeString];
+        block.message = message;
+        changeRequest(block, function () {
             numberChangeString = -1;
         });
     }
 
     document.getElementById('inputMessage').value = '';
-    //storeChat(taskList);
 }
 function addTodo(task, continueWith) {
     post(appState.mainUrl, JSON.stringify(task), function () {
-        //restore(continueWith);
     });
 }
 function addTodoInternal(task) {
@@ -222,25 +156,31 @@ function addTodoInternal(task) {
 }
 function createItem(task) {
     var temp = document.createElement('div');
-    var htmlAsText = '<div class="item border1" data-task-id="индефикатор">' +
-        '<p>Логин</p><p>Сообщение</p><img class="iconDelete">' +
-        '<img class="iconChange"></div>';
+    var htmlAsText = '<div class="item border1" id=' + task.id + '><p>' + task.user + '</p><p>' + task.message + '</p></div>';
     temp.innerHTML = htmlAsText;
-    updateItem(temp.firstChild, task);
+    updateItem(temp.firstChild);
     return temp.firstChild;
 }
-function updateItem(divItem, task) {
-    divItem.setAttribute('data-task-id', task.id);
+function changeItem(divItem, task) {
     divItem.childNodes[0].textContent = task.user;
     divItem.childNodes[1].textContent = task.message;
-    if (document.getElementById('nameLogin').innerHTML !== task.user) {
+}
+function updateItem(divItem) {
+    if (document.getElementById('nameLogin').innerHTML !== divItem.childNodes[0].innerText && divItem.childNodes.length > 2) {
         divItem.removeChild(divItem.childNodes[3]);
         divItem.removeChild(divItem.childNodes[2]);
+        divItem.classList.remove('border2');
+        divItem.classList.add('border1');
+        divItem.childNodes[0].classList.remove('fat');
     }
-    else {
+    else if (document.getElementById('nameLogin').innerHTML == divItem.childNodes[0].innerText && divItem.childNodes.length < 3) {
         divItem.childNodes[0].classList.add('fat');
         divItem.classList.remove('border1');
         divItem.classList.add('border2');
+        var deletes = '<img class="iconDelete">';
+        divItem.innerHTML += deletes;
+        deletes = '<img class="iconChange">';
+        divItem.innerHTML += deletes;
     }
 }
 function deleteRequest(task, continueWith) {
@@ -249,19 +189,15 @@ function deleteRequest(task, continueWith) {
     });
 }
 function deleteClick(item) {
-    // taskList = restoreChat();
     items = document.getElementsByClassName('items')[0];
-    var id = item.attributes['data-task-id'].value;
-    for (var i = 0; i < appState.taskList.length; i++) {
-        if (appState.taskList[i].id == id) {
+    var id = item.attributes['id'].value;
+    for (var i = 0; i < items.childNodes.length; i++) {
+        if (appState.taskList[i].id.toString() === id) {
             break;
         }
     }
-    items.removeChild(item);
     deleteRequest(appState.taskList[i], function () {
     });
-    //appState.taskList.splice(i, 1);
-    //storeChat(taskList);
 }
 function changeRequest(task, continueWith) {
     put(appState.mainUrl + '?id=' + task.id, JSON.stringify(task), function () {
@@ -274,11 +210,10 @@ function changeClick(item) {
     document.getElementById('inputMessage').focus();
 }
 function deleteMessage(item) {
-    //taskList = restoreChat();
     var items = document.getElementsByClassName('items')[0];
-    var id = item.attributes['data-task-id'].value;
-    for (var i = 0; i < appState.taskList.length; i++) {
-        if (appState.taskList[i].id == id) {
+    var id = item.attributes['id'].value;
+    for (var i = 0; i < items.childNodes.length; i++) {
+        if (appState.taskList[i].id.toString() === id) {
             numberChangeString = i;
             break;
         }
@@ -299,36 +234,18 @@ function isShiftEnter() {
         event.preventDefault();
     }
 }
-function connectToServer(){
-    var req = new XMLHttpRequest();
-    req.open("GET");
-    req.send();
-    req.onreadystatechange = function() {
-        if(req.readyState == 4) {
-
-        }
-    }
-}
-function restore(continueWith) {//!!!!!!!!!!!!!!!!!!!!!!!!!!!!! после гет
+function restore(continueWith) {
     var url = '/Chat' + '?token=' + appState.token;
     get(url, function (responseText) {
         console.assert(responseText != null);
         var response = JSON.parse(responseText)
         appState.token = response.token;
-        createAllTask(response.messages, 0);
+        createAllTask(response.messages);
         // output(appState);
         continueWith && continueWith();
     });
 
-    /*  allTask = restoreChat();
-     taskList = restoreChat();
-     var login = restoreLogin();
-     if (login != "") {
-     document.getElementById('nameLogin').innerHTML = login;
-     document.getElementById('onlineUser').innerHTML = login;
-     }
-     createAllTask(allTask, taskList);
-     */
+
 }
 
 function output(value) {
@@ -381,7 +298,9 @@ function ajax(method, url, data, continueWith, continueWithError) {
     xhr.onload = function () {
         if (xhr.readyState !== 4)
             return;
-
+        if (xhr.status == 304) {
+            return;
+        }
         if (xhr.status != 200) {
             continueWithError('Error on the server side, response ' + xhr.status);
             return;

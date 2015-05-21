@@ -20,16 +20,19 @@ body {
     border-width: 20px;
     word-wrap: break-word;
 }
+
 .leadtext {
     font-size: 21px;
     font-weight: 200;
     line-height: 30px;
 }
+
 .shellChat {
     position: absolute;
     top: 15px;
     left: 376px;
 }
+
 .shellLogin {
     position: absolute;
     top: 200px;
@@ -42,6 +45,7 @@ body {
     line-height: 50px;
     align: 300px 0px;
 }
+
 .panelMessage {
     border: #bfbfbf;
     background: white;
@@ -50,7 +54,6 @@ body {
     border-style: solid;
     border-width: 20px;
 }
-
 
 .serverPosition {
     position: absolute;
@@ -68,15 +71,17 @@ body {
 }
 
 .border1 {
-    border: solid 1px  #c09853;
+    border: solid 1px #c09853;
 }
 
 .border2 {
-    border: solid 1px  #62c462;
+    border: solid 1px #62c462;
 }
+
 .enterLogin {
     white-space: nowrap;
 }
+
 .textArea {
     resize: none; /* Запрещаем изменять размер */
     min-height: 80px;
@@ -84,45 +89,54 @@ body {
     min-width: 600px;
     text-align: start;
 }
+
 .btn-my {
     margin: 24px;
     width: 60px;
     height: 60px;
     border-radius: 50%;
     background-color: #49afcd;
-    box-shadow: 0 3px 20px rgba(0,0,0,.25),
-    inset 0 2px 0 rgba(255,255,255,.6),
-    0 2px 0 rgba(0,0,0,.1),
-    inset 0 0 20px rgba(0,0,0,.1);
+    box-shadow: 0 3px 20px rgba(0, 0, 0, .25),
+    inset 0 2px 0 rgba(255, 255, 255, .6),
+    0 2px 0 rgba(0, 0, 0, .1),
+    inset 0 0 20px rgba(0, 0, 0, .1);
 }
+
 .positionsent {
     position: absolute;
     top: 565px;
     left: 985px;
 }
+
 .btn-sent {
     width: 50%;
     height: 50%;
     margin: auto;
     position: absolute;
-    top: 0; left: 0; bottom: 0; right: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
     background: url(http://www.defaulticon.com/sites/default/files/styles/icon-front-page-32x32-preview/public/field/image/mail-sent.png?itok=-Ig-fbJH) no-repeat center;
 }
-.iconDelete{
+
+.iconDelete {
     padding-right: 50px;
     height: 50px;
     background: url(images/delete.png) no-repeat center;
 }
-.iconChange{
+
+.iconChange {
     padding-right: 50px;
     height: 50px;
     background: url(images/change.png) no-repeat center;
 }
+
 .error {
     height: 80px;
     weight: 800px;
-    background : #0480be;
+    background: #0480be;
     text-align: center;
     top: 10px;
-    color:#dd1144;
+    color: #dd1144;
 }

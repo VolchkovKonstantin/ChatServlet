@@ -19,7 +19,12 @@ public class Message {
         this.flag = true;
         this.date = date;
     }
-
+    public Message() {
+        this.id = 0;
+        this.user = "Petya";
+        this.message = "Hello";
+        this.flag = true;
+    }
     public long getID() {
         return this.id;
     }
