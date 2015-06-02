@@ -13,8 +13,7 @@ var theTask = function (user, message, id) {
 };
 var appState = {
     mainUrl: '/Chat',
-    taskList: [],
-    token: 'TN11EN'
+    taskList: []
 };
 /*var Users = function (id,user){
  return {
@@ -26,24 +25,11 @@ var appState = {
 function run() {
     var Container = document.getElementsByClassName('container')[0];
     Container.addEventListener('click', delegateEvent);
-    //connectToServer();
-    /*  id = uniqueId();
-     var logins = restoreLogin();
-     for (var i = 0; i < logins.length; i++) {
-     if(logins[i].id == id) {
-     break;
-     }
-     }
-     var login = logins[i].user;
-     if (login != "") {
-     document.getElementById('nameLogin').innerHTML = login;
-     }
-     */
-    //restore();
-    setInterval(function () {
-        restore();
-    }, 1000);
-
+    var login = restoreLogin();
+    if (login != "") {
+        document.getElementById('nameLogin').innerHTML = login;
+    }
+    poll(true);
 }
 function delegateEvent(event) {
     if (event.type == 'click' && (event.target.classList.contains('btn-sent') || event.target.classList.contains('btn-my'))) {
@@ -93,11 +79,26 @@ function createAllTask(allTask) {
         }
     }
 }
+function restoreLogin() {
+    if(typeof(Storage) == "undefined") {
+        alert('localStorage is not accessible');
+        return;
+    }
+    var item = localStorage.getItem("Login");
+    return item && JSON.parse(item);
+}
+function storeLogin(login) {
+    if(typeof(Storage) == "undefined") {
+        alert('localStorage is not accessible');
+        return;
+    }
+    localStorage.setItem("Login", JSON.stringify(login));
+}
 function pickLogin() {
     var login = document.getElementById('inputLogin');
     document.getElementById('nameLogin').innerHTML = login.value;
     // postRquestLogin(login.value);
-    //storeLogin(login.value);
+    storeLogin(login.value);
     login.value = '';
     var items = document.getElementsByClassName('items') [0];
     for (var i = 0; i < items.childNodes.length; i++) {
@@ -133,12 +134,14 @@ function buttonClick() {
 
     document.getElementById('inputMessage').value = '';
 }
-function addTodo(task, continueWith) {
-    post(appState.mainUrl, JSON.stringify(task), function () {
-    });
+function addTodo(task) {
+    post(JSON.stringify(task));
 }
 function addTodoInternal(task) {
     if (task.message == "") {
+        return;
+    }
+    if (task.message =="DeleteMessage"){
         return;
     }
     var items = document.getElementsByClassName('items')[0];
@@ -183,10 +186,8 @@ function updateItem(divItem) {
         divItem.innerHTML += deletes;
     }
 }
-function deleteRequest(task, continueWith) {
-    deletes(appState.mainUrl + '?id=' + task.id, JSON.stringify(task), function () {
-        continueWith();
-    });
+function deleteRequest(task) {
+    deletes(JSON.stringify(task));
 }
 function deleteClick(item) {
     items = document.getElementsByClassName('items')[0];
@@ -196,13 +197,10 @@ function deleteClick(item) {
             break;
         }
     }
-    deleteRequest(appState.taskList[i], function () {
-    });
+    deleteRequest(appState.taskList[i]);
 }
-function changeRequest(task, continueWith) {
-    put(appState.mainUrl + '?id=' + task.id, JSON.stringify(task), function () {
-        continueWith();
-    });
+function changeRequest(task) {
+    put(JSON.stringify(task));
 }
 function changeClick(item) {
     document.getElementById('inputMessage').value = item.childNodes[1].textContent;
@@ -219,9 +217,6 @@ function deleteMessage(item) {
         }
     }
     items.childNodes[numberChangeString].childNodes[1].textContent = '';
-    appState.taskList[numberChangeString].message = "User Change message";
-    changeRequest(appState.taskList[numberChangeString], function () {
-    });
 }
 function isEnter() {
     if (event.keyCode == 13) {
@@ -234,103 +229,58 @@ function isShiftEnter() {
         event.preventDefault();
     }
 }
-function restore(continueWith) {
-    var url = '/Chat' + '?token=' + appState.token;
-    get(url, function (responseText) {
-        console.assert(responseText != null);
-        var response = JSON.parse(responseText)
-        appState.token = response.token;
-        createAllTask(response.messages);
-        // output(appState);
-        continueWith && continueWith();
-    });
-
-
-}
-
 function output(value) {
     var output = document.getElementById('shellChat');
     document.getElementsByClassName('serverPosition')[0].outerHTML = "<div class=\"serverPosition\"><h4>Server:<img src=\"resources/css/images/redButton.png\"></h4></div>"
     output.innerText = JSON.stringify(value, null, 2);
 }
 
-//->!!!!!!!!!!!!!!!!!!!!!!!!!!!
-function defaultErrorHandler(message) {
-    console.error(message);
-    output(message);
+function post(data) {
+    ajax('POST', data);
 }
 
-function get(url, continueWith, continueWithError) {
-    ajax('GET', url, null, continueWith, continueWithError);
+function put(data) {
+    ajax('PUT', data);
 }
 
-function post(url, data, continueWith, continueWithError) {
-    ajax('POST', url, data, continueWith, continueWithError);
+function deletes(data) {
+    ajax('DELETE', data);
 }
 
-function put(url, data, continueWith, continueWithError) {
-    ajax('PUT', url, data, continueWith, continueWithError);
-}
-
-function deletes(url, data, continueWith, continueWithError) {
-    ajax('DELETE', url, data, continueWith, continueWithError);
-}
-
-function isError(text) {
-    if (text == "")
-        return false;
-
-    try {
-        var obj = JSON.parse(text);
-    } catch (ex) {
-        return true;
-    }
-
-    return !!obj.error;
-}
-//<-!!!!!!!!!!!!!!!!!!!!!!!
-function ajax(method, url, data, continueWith, continueWithError) {
-    var xhr = new XMLHttpRequest();
-
-    continueWithError = continueWithError || defaultErrorHandler;
-    xhr.open(method || 'GET', url);
-
-    xhr.onload = function () {
-        if (xhr.readyState !== 4)
-            return;
-        if (xhr.status == 304) {
-            return;
+function ajax(method, data) {
+    $.ajax({
+        url: appState.mainUrl,
+        type: method,
+        data: data,
+        success: function (temp) {
+        },
+        error: function () {
         }
-        if (xhr.status != 200) {
-            continueWithError('Error on the server side, response ' + xhr.status);
-            return;
-        }
-
-        if (isError(xhr.responseText)) {
-            continueWithError('Error on the server side, response ' + xhr.responseText);
-            return;
-        }
-
-        continueWith(xhr.responseText);
-    };
-
-    xhr.ontimeout = function () {
-        continueWithError('Server timed out !');
-    }
-
-    xhr.onerror = function (e) {
-        var errMsg = 'Server connection error !\n' +
-            '\n' +
-            'Check if \n' +
-            '- server is active\n' +
-            '- server sends header "Access-Control-Allow-Origin:*"';
-
-        continueWithError(errMsg);
-    };
-
-    xhr.send(data);
+    });
 }
-//!!!!!!!!!!!!!->
 window.onerror = function (err) {
     output(err.toString());
+}
+var flag = true;
+function poll(isFirst) {
+    $.ajax({
+        url: appState.mainUrl + "?flag=" + isFirst,
+        type: 'GET',
+        dataType: 'json',
+        success: function(responseText){
+            flag = true;
+            var messages = responseText.messages;
+            createAllTask(messages);
+        },
+        error: function(responseText){
+            if (flag) {
+                flag = false;
+                appState.taskList = [];
+            }
+            output(responseText);
+        },
+        complete: function() {
+            setTimeout(function(){poll(!flag)},1000);
+        }
+    });
 }

@@ -1,9 +1,17 @@
-package com.servlet;
+package com.servlet.Servlet;
 
+import com.servlet.Repository.Message;
+import com.servlet.Repository.MessageExchange;
+import com.servlet.Repository.Pairs;
+import com.servlet.Repository.Storage;
+import com.servlet.dao.DataBase;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.xml.sax.SAXException;
 
+import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
+import javax.servlet.AsyncListener;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -15,59 +23,88 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
 
-@WebServlet(urlPatterns = "/Chat")
+@WebServlet(urlPatterns = "/Chat", asyncSupported = true)
 public class Chat extends HttpServlet {
     private MessageExchange messageExchange;
-    private Base base;
-    final static Logger logger = Logger.getLogger(Chat.class);
-
+    private DataBase base;
+    static Logger logger = Logger.getLogger(Chat.class.getName());
+    private static List<AsyncContext> ascont = Collections.synchronizedList(new ArrayList<AsyncContext>());
     @Override
     public void init() throws ServletException {
         messageExchange = new MessageExchange();
-        base = new Base();
-        try {
-            getfistHistory();
-            super.init();
-        } catch (SAXException e) {
-            logger.error(e);
-        } catch (IOException e) {
-            logger.error(e);
-        } catch (ParserConfigurationException e) {
-            logger.error(e);
-        } catch (TransformerException e) {
-            logger.error(e);
-        }
+        base = new DataBase();
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
-        PrintWriter out = resp.getWriter();
-
-        String token = (String) req.getParameter("token");
-        try {
-            if (token != null && !"".equals(token)) {
-                int index = messageExchange.getIndex(token);
-                if (formResponse(index).equals("NO")) {
-                    resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-                } else {
-                    out.print(formResponse(index));
-                    out.flush();
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                }
-            } else {
-                resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-                logger.error("Need correct token");
+        final PrintWriter out = resp.getWriter();
+        boolean flag = Boolean.parseBoolean(req.getParameter("flag"));
+        if (flag) {
+            String messages = "";
+            synchronized (messages) {
+                    firstHistory();
+                    messages = formResponse();
+                    Storage.deleteAll();
             }
-        } catch (Exception e) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-            logger.error("Something wrong");
+            out.print(messages);
+            out.flush();
+        }else{
+                AsyncContext asc = req.startAsync(req, resp);
+                asc.setTimeout(300000);
+                ascont.add(asc);
+                asc.addListener(new AsyncListener() {
+                    public void onComplete(AsyncEvent asyncEvent) throws IOException {
+
+                    }
+
+                    public void onTimeout(AsyncEvent asyncEvent) throws IOException {
+                        HttpServletResponse resp = (HttpServletResponse) asyncEvent.getAsyncContext().getResponse();
+                        resp.setContentType("application/json");
+                        resp.setCharacterEncoding("UTF-8");
+                        PrintWriter out = resp.getWriter();
+                        out.print("{\"messages\" : []}");
+                        out.flush();
+                        ascont.remove(asyncEvent.getAsyncContext());
+                    }
+
+                    public void onError(AsyncEvent asyncEvent) throws IOException {
+
+                    }
+
+                    public void onStartAsync(AsyncEvent asyncEvent) throws IOException {
+
+                    }
+                });
+            }
+        } catch (Exception e){
+            logger.error(e);
         }
+    }
+    private void doResponse(List<AsyncContext> context) {
+        for (AsyncContext asc : context) {
+
+            HttpServletResponse response = (HttpServletResponse) asc.getResponse();
+            try {
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                PrintWriter out = response.getWriter();
+                out.print(formResponse());
+                out.flush();
+                asc.complete();
+            } catch (IOException e) {
+                logger.error(e);
+            }
+        }
+        Storage.deleteAll();
     }
 
     @Override
@@ -83,13 +120,15 @@ public class Chat extends HttpServlet {
             Date curTime = new Date();
             DateFormat dtfrm = DateFormat.getDateTimeInstance();
             String dateTime = dtfrm.format(curTime);
-
             logger.info("POST " + dateTime + " " + user + " : " + message);
 
             Message structOfMessage = new Message(id, user, message, curTime);
             Storage.addMessage("POST", structOfMessage);
-            base.createPartXML(structOfMessage);
+            base.createPartBase(structOfMessage);
             resp.setStatus(HttpServletResponse.SC_OK);
+            List<AsyncContext> ascont = new ArrayList<AsyncContext>(this.ascont);
+            this.ascont.clear();
+            doResponse(ascont);
         } catch (Exception e) {
             logger.error(e);
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -103,9 +142,9 @@ public class Chat extends HttpServlet {
             BufferedReader in = req.getReader();
             String temp = in.readLine();
             JSONObject jsonObject = messageExchange.getClientMessage(temp);
-            long id = Long.parseLong(jsonObject.get("id").toString());
 
-            Message message = base.replacePartXML(id, "DeleteMessage"); //base.history.get(i);
+            long id = Long.parseLong(jsonObject.get("id").toString());
+            Message message = base.replacePartBase(id, "DeleteMessage"); //base.history.get(i);
 
             if ((message != null) && (message.getFlag())) {
                 Storage.addMessage("DELETE", message);
@@ -114,6 +153,9 @@ public class Chat extends HttpServlet {
                 String dateTime = dtfrm.format(curTime);
                 logger.info("Delete " + dateTime + " " + message.getUser() + " : " + message.getMessage());
                 resp.setStatus(HttpServletResponse.SC_OK);
+                List<AsyncContext> ascont = new ArrayList<AsyncContext>(this.ascont);
+                this.ascont.clear();
+                doResponse(ascont);
             } else {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 logger.error("Need correct message(Not null)");
@@ -134,17 +176,18 @@ public class Chat extends HttpServlet {
             long id = Long.parseLong(jsonObject.get("id").toString());
             String putMessage = jsonObject.get("message").toString();
 
-            Message message = base.replacePartXML(id, putMessage);
+            Message message = base.replacePartBase(id, putMessage);
 
             if ((message != null) && (message.getFlag())) {
                 Storage.addMessage("PUT", message);
                 Date curTime = new Date();
                 DateFormat dtfrm = DateFormat.getDateTimeInstance();
                 String dateTime = dtfrm.format(curTime);
-                if (!message.getMessage().equals("User Change message")) {
                     logger.info("PUT " + dateTime + " " + message.getUser() + " : " + message.getMessage());
-                }
                 resp.setStatus(HttpServletResponse.SC_OK);
+                List<AsyncContext> ascont = new ArrayList<AsyncContext>(this.ascont);
+                this.ascont.clear();
+                doResponse(ascont);
             } else {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 logger.error("Need correct message(Not null)");
@@ -155,21 +198,14 @@ public class Chat extends HttpServlet {
     }
 
     @SuppressWarnings("unchecked")
-    private String formResponse(int index) {
-        List<Pairs> history = Storage.getHistory(index);
-        if (history.size() != 0) {
-            return messageExchange.getServerResponse(history, Storage.getSize());
-        }
-        return "NO";
+    private String formResponse() {
+
+        List<Pairs> history = Storage.getHistory(0);
+        return  messageExchange.getServerResponse(history);
     }
 
-    private void getfistHistory() throws SAXException, IOException, ParserConfigurationException, TransformerException {
-        if (base.thereXML()) {
-            Storage.addAll(base.readXML(0));
-
-        } else {
-            base.startXML();
-        }
+    private void firstHistory() throws SAXException, IOException, ParserConfigurationException, TransformerException {
+            Storage.addAll(base.readBase());
     }
 
 }

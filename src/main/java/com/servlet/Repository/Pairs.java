@@ -1,4 +1,6 @@
-package com.servlet;
+package com.servlet.Repository;
+
+import com.servlet.Repository.Message;
 
 /**
  * Created by Xaker on 19.05.2015.

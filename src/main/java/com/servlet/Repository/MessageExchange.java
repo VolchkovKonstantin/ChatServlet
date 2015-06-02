@@ -1,6 +1,6 @@
-package com.servlet;
+package com.servlet.Repository;
 
-import javafx.util.Pair;
+import com.servlet.Repository.Pairs;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -11,7 +11,7 @@ import java.util.List;
 public class MessageExchange {
     private JSONParser jsonParser = new JSONParser();
 
-    public String getToken(int index) {
+    /*public String getToken(int index) {
         Integer number = index * 8 + 11;
         return "TN" + number + "EN";
     }
@@ -19,8 +19,8 @@ public class MessageExchange {
         public int getIndex(String token) {
             return (Integer.valueOf(token.substring(2, token.length() - 2)) - 11) / 8;
         }
-
-    public String getServerResponse(List<Pairs> messages,int numberToken) {
+*/
+    public String getServerResponse(List<Pairs> messages) {
         JSONObject jsonObject = new JSONObject();
         JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < messages.size(); i++) {
@@ -32,7 +32,7 @@ public class MessageExchange {
             jsonArray.add(jsonObject1);
         }
         jsonObject.put("messages", jsonArray);
-        jsonObject.put("token", getToken(numberToken));
+      //  jsonObject.put("token", getToken(numberToken));
 
         return jsonObject.toJSONString();
     }
